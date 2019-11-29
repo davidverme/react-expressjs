@@ -1,35 +1,22 @@
-FROM node:10.15.0-alpine
+FROM node:10.16.3
 
 ARG WORKDIR=/home/node/app/
 
-ARG NPM_REGISTRY
-ARG NPM_TOKEN
-ARG GIT_BRANCH
-ARG GIT_SHA1
-ARG PACKAGE_VERSION
-
-ENV PORT 3000
-ENV APPLICATION_NAME fit-finder-v3-app
-ENV PACKAGE_VERSION ${PACKAGE_VERSION}
-ENV ENVIRONMENT ''
-
-LABEL git.branch=${GIT_BRANCH}
-LABEL git.sha1=${GIT_SHA1}
-LABEL com.thirdlove.app.name=${APPLICATION_NAME}
-LABEL com.thirdlove.app.version=${PACKAGE_VERSION}
-
-WORKDIR ${WORKDIR}
-
-COPY package*.json ${WORKDIR}
-COPY .npmrc ${WORKDIR}
-
-RUN echo "//${NPM_REGISTRY}/:_authToken=\"${NPM_TOKEN}\"" >> .npmrc \
-    && npm ci --loglevel=error
-
-COPY . ${WORKDIR}
+# Set image metadata
+LABEL version="1.0"
+LABEL description="Test Node React"
+# Create app directory
+WORKDIR /usr/src/app
+# install dependencies
+COPY package*.json ./
+RUN npm cache clean --force && npm install
+# copy app source to image _after_ npm install so that
+# application code changes don’t bust the docker cache of
+# npm install step
+COPY . .
 
 RUN npm run build
 
-EXPOSE $PORT
-
-CMD ["npm", "start"]
+# set application PORT and expose docker PORT, 80 is what Elastic Beanstalk expects
+EXPOSE 3000
+CMD [ "npm", "run", "start" ]
